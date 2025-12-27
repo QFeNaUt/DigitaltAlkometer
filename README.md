@@ -4,7 +4,7 @@ En mobilvennlig webapplikasjon som hjelper deg å loggføre inntak av alkohol og
 
 ## 📱 Prøv appen
 **[KLIKK HER FOR Å ÅPNE KALKULATOREN](DIN_STREAMLIT_LINK_HER)**
-*(Bytt ut teksten over med lenken du får fra Streamlit Cloud)*
+
 
 ## ✨ Funksjoner
 * **Tidsstyring:** Legg inn drikkevarer med nøyaktig klokkeslett (f.eks. hvis du glemte å logge en øl for en time siden).
