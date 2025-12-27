@@ -2,13 +2,20 @@ import streamlit as st
 from datetime import datetime, timedelta
 
 # --- OPPSETT AV SIDEN ---
+st.set_page_config(page_title="Promillekalkulator", page_icon="🍺")
 st.title("🍺 Promillekalkulator")
 
 # --- SESSION STATE (Hukommelse) ---
-# Nettsider glemmer alt hver gang du trykker på noe. 
-# Vi må be den huske drikkelisten.
+# 1. Huske drikkeliste
 if 'drikke_liste' not in st.session_state:
     st.session_state.drikke_liste = []
+
+# 2. Huske starttidspunkt (NY FIKS)
+# Vi setter starttid kun én gang (første gang appen åpnes)
+if 'lagret_start_tid' not in st.session_state:
+    # Setter standard til nå, men runder av sekundene
+    naa = datetime.now().replace(second=0, microsecond=0)
+    st.session_state['lagret_start_tid'] = naa.time()
 
 # --- FUNKSJONER ---
 def legg_til_drikke(navn, volum_cl, prosent):
@@ -28,7 +35,10 @@ with col1:
 with col2:
     kjonn = st.radio("Kjønn", ["Mann", "Kvinne"])
 
-start_tid = st.time_input("Startet å drikke", value=datetime.now().time())
+# HER ER ENDRINGEN:
+# Vi bruker key='lagret_start_tid'. Da kobles input-feltet direkte til hukommelsen.
+# Streamlit vil nå prioritere det du velger, fremfor standardverdien.
+start_tid = st.time_input("Startet å drikke", key='lagret_start_tid')
 
 # --- KNAPPER FOR DRIKKE ---
 st.subheader("Hva drikker du?")
@@ -48,7 +58,6 @@ with col_b:
     if st.button("🔥 Sprit 4cl (60%)"):
         legg_til_drikke("Sprit 60%", 4, 60)
     
-    # Rød knapp for nullstilling
     if st.button("❌ Nullstill", type="primary"):
         nullstill()
 
@@ -56,9 +65,6 @@ with col_b:
 if st.session_state.drikke_liste:
     antall = len(st.session_state.drikke_liste)
     st.info(f"Du har lagt til {antall} enheter.")
-    
-    # Vis liste over innhold (valgfritt)
-    # st.write(st.session_state.drikke_liste)
 
 # --- BEREGNING ---
 if st.button("🚀 BEREGN NÅR DU ER KLAR", use_container_width=True):
@@ -88,16 +94,26 @@ if st.button("🚀 BEREGN NÅR DU ER KLAR", use_container_width=True):
 
         # 5. Klokkeslett
         naa = datetime.now()
-        # Kombiner datoen i dag med klokkeslettet fra input
         start_dato_tid = datetime.combine(naa.date(), start_tid)
         
-        # Hvis starttiden er senere på dagen enn "nå" (f.eks du tester kl 14:00 men setter start 18:00),
-        # antar vi at det gjelder i dag. Hvis du beregner over midnatt, ordner timedelta biffen.
+        # Håndtering av dato hvis man fester over midnatt
+        # Hvis start_tid er mye høyere enn nå-tid, antar vi kanskje at det var i går? 
+        # Men for enkelhets skyld antar vi her at datoen er "i dag" når festen starter.
         
         slutt_tid = start_dato_tid + timedelta(hours=timer_til_edru)
+        
+        # Hvis slutt-tid er før start-tid (f.eks. over midnatt), legg til en dag
+        if slutt_tid < start_dato_tid:
+             slutt_tid += timedelta(days=1)
 
         # --- RESULTAT ---
         st.success(f"Topp-promille: {maks_promille:.2f}")
         st.markdown(f"### Du er kjørbar (under 0.15):")
-        st.markdown(f"# Kl. {slutt_tid.strftime('%H:%M')}")
-        st.caption(f"(Dato: {slutt_tid.strftime('%d.%m')})")
+        
+        # Hvis det går over midnatt, vis dato tydeligere
+        dag_format = "%H:%M"
+        if slutt_tid.day != start_dato_tid.day:
+            st.warning("Merk: Dette er neste dag!")
+            dag_format = "%H:%M (Dato: %d.%m)"
+            
+        st.markdown(f"# Kl. {slutt_tid.strftime(dag_format)}")
